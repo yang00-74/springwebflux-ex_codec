@@ -1,6 +1,8 @@
 package com.nathan.ex.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -11,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CoolController {
 
     @GetMapping(value = "/hello")
-    public String hello(String acct) {
+    public String hello(@RequestParam("acct") String acct) {
         return acct;
     }
 }

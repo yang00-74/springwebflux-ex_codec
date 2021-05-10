@@ -1,9 +1,9 @@
 package com.nathan.ex.config.codec;
 
+import com.nathan.ex.config.codec.constant.MimeTypeConstant;
 import org.springframework.lang.Nullable;
 import org.springframework.util.MimeType;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -13,16 +13,14 @@ import java.util.List;
  */
 class ExCodecSupport {
     static final List<MimeType> MIME_TYPES = Collections.unmodifiableList(
-            Arrays.asList(
-                    new MimeType("application", "json"),
-                    new MimeType("application","ex-codec")));
+            Collections.singletonList(MimeTypeConstant.EX_CODEC));
 
     static final String DELIMITED_KEY = "delimited";
 
     static final String DELIMITED_VALUE = "true";
 
     boolean supportsMimeType(@Nullable MimeType mimeType) {
-        return (mimeType == null || MIME_TYPES.stream().anyMatch(m -> m.isCompatibleWith(mimeType)));
+        return MIME_TYPES.stream().anyMatch(m -> m.isCompatibleWith(mimeType));
     }
 
     List<MimeType> getMimeTypes() {

@@ -1,7 +1,5 @@
-package com.nathan.ex.config;
+package com.nathan.ex.config.codec;
 
-import com.nathan.ex.config.codec.ExDecoder;
-import com.nathan.ex.config.codec.ExEncoder;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
 import org.springframework.http.codec.ServerCodecConfigurer;
@@ -13,7 +11,7 @@ import org.springframework.web.reactive.config.WebFluxConfigurer;
  */
 @Configuration
 @EnableWebFlux
-public class WebConfig implements WebFluxConfigurer {
+public class WebCodecConfig implements WebFluxConfigurer {
     @Override
     public void configureHttpMessageCodecs(ServerCodecConfigurer configurer) {
 

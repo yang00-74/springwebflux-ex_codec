@@ -37,8 +37,7 @@ public class ExEncoder extends ExCodecSupport implements HttpMessageEncoder<Obje
 
     @Override
     public boolean canEncode(ResolvableType elementType, @Nullable MimeType mimeType) {
-        boolean canEncode = Object.class.isAssignableFrom(elementType.toClass()) && supportsMimeType(mimeType);
-        return canEncode;
+        return Object.class.isAssignableFrom(elementType.toClass()) && supportsMimeType(mimeType);
     }
 
     /**

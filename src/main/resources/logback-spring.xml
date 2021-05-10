@@ -1,0 +1,93 @@
+<!-- 日志级别：OFF、FATAL、ERROR、WARN、INFO、DEBUG、TRACE、ALL -->
+<!-- configuration属性描述
+	scan:为true时，配置文件如果发生改变，将会被重新加载，默认值为true
+	scanPeriod:监测配置文件是否有修改的时间间隔；当scan为true时，此属性生效，默认单位是毫秒
+    debug:设置为true时，将打印出logback内部日志信息，默认值为false -->
+
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+    <!--
+        1. 名称必须使用 logback-spring.xml,xml才会在Spring启动后读取
+     -->
+    <property name="logPath" value="../log"/>
+
+   <timestamp key="YEAR" datePattern="yyyy"/>
+   <timestamp key="MONTH" datePattern="MM"/>
+   <property name="CHARSET" value="UTF-8"/>
+   <!-- 日志保存时间7天（${maxHistory}该设置不生效） -->
+    <property name="maxHistory" value="5"/>
+    <property name="maxFileSize" value="200MB"/>
+
+    <!-- 彩色日志 -->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wex"
+                    converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
+    <conversionRule conversionWord="wEx"
+                    converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+	<!-- 日志格式 -->
+    <property name="PATTERN" value="|%d{yyyy-MM-dd HH:mm:ss.SSS}|%highlight(%level)|%cyan(%X{trace_id})|%cyan(%thread)|%green(%logger{50})|%blue(%method[%L])|%X{uid}|%msg%n"/>
+    <!-- 在控制台显示的日志，和PATTERN的区别是 带颜色，可关注重点 -->
+    <property name="CONSOLE_PATTERN" value="|%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint}|%highlight(%level)|%cyan(%X{trace_id})|%cyan(%thread)|%green(%logger{50})|%blue(%method[%L]){magenta}|%X{uid}|%msg%n"/>
+
+	<!-- 日志目录 -->
+	<property name="ROOT_PATH" value="${logPath}"/>
+	<property name="BASE_PATH_ERROR" value="${ROOT_PATH}/error"/>
+	<property name="BASE_PATH_ALL" value="${ROOT_PATH}"/>
+
+  	<!-- ====================================================================================== -->
+    <!-- 控制台日志 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+            <charset>${CHARSET}</charset> <!-- 此处设置字符集 -->
+        </encoder>
+    </appender>
+
+
+    <!-- ERROR日志 -->
+    <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <maxHistory>90</maxHistory>
+            <fileNamePattern>${BASE_PATH_ERROR}/%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy
+            		class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>200MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+            <charset>${CHARSET}</charset> <!-- 此处设置字符集 -->
+       </encoder>
+    </appender>
+
+    <!-- 所有的日志 -->
+    <appender name="FILE_ALL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <maxHistory>90</maxHistory>
+            <fileNamePattern>${BASE_PATH_ALL}/%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>200MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+            <charset>${CHARSET}</charset> <!-- 此处设置字符集 -->
+        </encoder>
+    </appender>
+
+
+	<!-- Must Fix Logger Level List [Start] -->
+    <logger name="okhttp3.OkHttpClient" level="INFO"  additivity="false"/>
+
+	<!-- Fix Root Level -->
+	<root level="INFO">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="FILE_ERROR" />
+		<appender-ref ref="FILE_ALL" />
+	</root>
+</configuration>

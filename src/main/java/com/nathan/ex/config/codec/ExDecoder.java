@@ -43,8 +43,7 @@ public class ExDecoder extends ExCodecSupport implements Decoder<Object> {
 
     @Override
     public boolean canDecode(ResolvableType elementType, @Nullable MimeType mimeType) {
-        boolean canDecode = Object.class.isAssignableFrom(elementType.toClass()) && supportsMimeType(mimeType);
-        return canDecode;
+        return Object.class.isAssignableFrom(elementType.toClass()) && supportsMimeType(mimeType);
     }
 
     @Override

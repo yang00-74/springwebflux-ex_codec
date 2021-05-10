@@ -1,0 +1,554 @@
+<html>
+<head lang="zh-cn">
+    <meta charset="utf-8">
+    <title></title>
+</head>
+<body>
+<script type="text/javascript"
+        src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript">
+    var MSG_TYPE = {
+        CLIENT_REQUEST: 1,
+        SERVER_RESPONSE: 2,
+        SERVER_REQUEST: 3,
+        CLIENT_RESPONSE: 4
+    };
+    var MODULE_TYPE = {
+        MODULE_TYPE_COMMON: "common",
+        MODULE_TYPE_IM: "im"
+    };
+
+    $(document).ready(function () {
+        var request = {
+            id: (new Date()).valueOf(),
+            type: "user"
+        };
+
+        // 心跳
+        var heartBeat = {
+            timer: 0,
+            interval: 30,   // 心跳间隔(秒)
+            open: function () {
+                this.timer = window.setInterval(function () {
+                    doPing();
+                }, this.interval * 100000);
+            },
+            reset: function () {
+                this.close();
+                this.open();
+            },
+            close: function () {
+                window.clearInterval(this.timer);
+            }
+        };
+
+        var socket;
+        var isConnect = false;
+        var wsUrl = "ws://127.0.0.1:8080/websocket";
+        if (!window.WebSocket) {
+            window.WebSocket = window.MozWebSocket;
+        }
+
+
+        var handler = {
+            register: function (msg) {
+
+            },
+            ping: function (msg) {
+
+            },
+            online: function (msg) {
+
+            },
+            offline: function (msg) {
+
+            },
+            message: function (msg) {
+                showMsg(msg);
+            }
+        };
+
+        function doConnect() {
+            if (window.WebSocket) {
+                socket = new WebSocket(wsUrl);
+                socket.onmessage = function (event) {
+                    console.log(event.data);
+                };
+                socket.onopen = function (event) {
+                    console.log("websocket 打开了");
+                    doRegister();
+                };
+                socket.onclose = function (event) {
+                    console.log("websocket 关闭了");
+                    heartBeat.close();
+                    isConnect = false;
+                };
+                socket.onerror = function (event) {
+                    console.log("websocket 发生错误");
+                    heartBeat.close();
+                    isConnect = false;
+                };
+                socket.onmessage = function (event) {
+                    let msg = JSON.parse(event.data);
+                    let handlerMethod = handler[msg.event];
+                    if (typeof handlerMethod === "function") {
+                        handlerMethod(msg);
+                    } else {
+                        console.log("事件类型不存在：" + JSON.stringify(msg));
+                    }
+                };
+
+                // 开启心跳
+                heartBeat.open();
+                isConnect = true;
+            }
+        }
+
+        function doRegister() {
+            console.log('doRegister');
+            request.id++;
+            let msg = {
+                id: request.id,
+                module: MODULE_TYPE.MODULE_TYPE_COMMON,
+                type: MSG_TYPE.CLIENT_REQUEST, // 客户端请求
+                event: "register",
+                uid: getClientUid(),
+                timestamp: new Date().getTime(),
+                data: {
+                    text: "nice to meet you",
+                    version: "1.0.0",
+                    network: "",
+                    os: ""
+                }
+            };
+            send(msg);
+        }
+
+        function doPing() {
+            console.log('doPing');
+            request.id++;
+            let msg = {
+                id: request.id,
+                module: MODULE_TYPE.MODULE_TYPE_COMMON,
+                type: MSG_TYPE.CLIENT_REQUEST, // 客户端请求
+                event: "ping",
+                uid: getClientUid(),
+                timestamp: new Date().getTime(),
+                data: {}
+            };
+            send(msg);
+        }
+
+        function guid() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                let r = Math.random() * 16 | 0,
+                    v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function getUid() {
+            let uid = $("#user-uid").val();
+            if (uid.length == 0) {
+                alert("uid不能为空");
+                return false;
+            }
+            return uid;
+        }
+
+        function getClientUid() {
+            return request.type + "#" + getUid();
+        }
+
+        function getMsgHtml(uid, time, content) {
+            let mine = getClientUid() === uid ? "<li class='chat-mine'>\n" : "<li>\n";
+            return mine +
+                "<div class=\"chat-user\">" + uid + "<i>" + time + "</i></div>\n" +
+                "<div class=\"chat-text\">" + content + "</div>\n" +
+                "</li>";
+        }
+
+        function showMsg(msg) {
+            // 响应消息
+            if (msg.type !== MSG_TYPE.CLIENT_REQUEST && msg.type !== MSG_TYPE.SERVER_REQUEST) {
+                if (msg.type == MSG_TYPE.SERVER_RESPONSE) {
+                    if (msg.data.ret != 0) {
+                        console.log("msgError: " + msg.data.msg)
+                    }
+                }
+                // TODO 判断结果
+                return;
+            }
+            let msgData = msg.data || {};
+            var content = "";
+            switch (msgData.type) {
+                case "text":
+                    content = msgData.content;
+                    break;
+                case "image":
+                    content = "图片消息:" + msgData.url;
+                    break;
+                case "voice":
+                    content = "音频消息:" + msgData.url;
+                    break;
+                case "recommd":
+                    content = "推荐问消息:" + JSON.stringify(msgData.content);
+                    break;
+                case "answer":
+                    content = "答案消息:" + JSON.stringify(msgData.content);
+                    break;
+                case "invitation":
+                    content = "邀请发送订单消息:" + JSON.stringify(msgData.content);
+                    break;
+                case "order":
+                    content = "订单类消息:" + JSON.stringify(msgData.content);
+                    break;
+                case "rating":
+                    content = "满意度评价消息:" + JSON.stringify(msgData.content);
+                    break;
+                default:
+                    break;
+            }
+
+            let msgHtml = getMsgHtml(msg.uid, msg.timestamp, content || "")
+            $("#chat-msg ul").append(msgHtml);
+            $("#input").val("");
+            // 定位到最新消息
+            $('#chat-msg').scrollTop($("#chat-msg ul").height());
+        }
+
+        function getHistory() {
+            let data = {
+                lastId: "111111111"
+            };
+            sendEvent("history", data, function (msg) {
+                //...
+            });
+
+        }
+
+        function sendEvent(event, data, callback) {
+            // 有消息时重置心跳
+            heartBeat.reset();
+
+            request.id++;
+            let msg = {
+                id: request.id,
+                module: MODULE_TYPE.MODULE_TYPE_IM,
+                type: MSG_TYPE.CLIENT_REQUEST, // 客户端请求
+                event: event,
+                uid: getClientUid(),
+                timestamp: new Date().getTime(),
+                data: {
+                    urlData: {
+                        //todo:此处为前端透传的参数
+                        // groupId: "4486a8c15c84472c9b5a817a094e4553",
+                        groupId: "0f1495e5dc7148418ec58de67d412877",
+                        openId: "14mQzqaRdjbKc6oNVE",
+                        source: 2,
+                        channelId: 4,
+                        identity: 2
+                    }
+                }
+            };
+            if (data) {
+                msg.data = data;
+            }
+            send(msg);
+
+            if (typeof callback === "function") {
+                callback(msg);
+            }
+        }
+
+        function send(msg) {
+            if (!window.WebSocket) {
+                return;
+            }
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(msg));
+            } else {
+                alert("The socket is not open.");
+            }
+        }
+
+        $(".send-btn").on("click", function () {
+            let msg = $("#input").val();
+            if (msg.length > 0) {
+                sendEvent("message", {
+                    to: null,
+                    type: "text",
+                    content: msg,
+                    cmId: guid()	// 客户端消息id
+                }, showMsg);
+            }
+        });
+
+        // 事件处理
+        $(".chat-tool button").on("click", function () {
+            let that = $(this);
+            let event = that.data("event");
+            let data = {};
+            switch (event) {
+                case "online":
+                    data.urlData = {
+                        groupId: "0f1495e5dc7148418ec58de67d412877",
+                        openId: "14mQzqaRdjbKc6oNVE",
+                        source: 2,
+                        channelId: 4,
+                        identity: 2
+                    };
+                    break;
+                case "history":
+                    alert("获取历史消息");
+                    return
+            }
+            sendEvent(event, data, function (msg) {
+                // that.prop("disabled", true);
+            });
+        });
+
+        $(".chat-env button").on("click", function () {
+            let that = $(this);
+            let event = that.data("event");
+            switch (event) {
+                case "dev":
+                    $("#envName").text("开发环境");
+                    wsUrl = "ws://127.0.0.1:8080/websocket";
+                    break;
+                case "stg":
+                    $("#envName").text("测试环境");
+                    wsUrl = "ws://127.0.0.1:8080/websocket/chat";
+                    break;
+                default:
+                    return;
+            }
+            if (isConnect) {
+                heartBeat.close();
+                socket.close();
+                isConnect = false;
+            }
+            doConnect();
+        });
+    });
+</script>
+<style type="text/css">
+    body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    input:focus, textarea:focus {
+        outline: none;
+    }
+
+    .contain {
+        display: -webkit-flex;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-main {
+        display: flex;
+    }
+
+    .user-box {
+        width: 180px;
+        border: 1px solid #e2e2e2;
+    }
+
+    .chat-box {
+        display: -webkit-flex;
+        display: flex;
+        flex-direction: column;
+        width: 700px;
+    }
+
+    .chat-box ul {
+        margin: 0;
+        list-style: none;
+        padding: 10px;
+    }
+
+    .chat-tool {
+        display: flex;
+        margin: 5px 0;
+        justify-content: center;
+        align-items: center;
+        flex-basis: auto;
+    }
+
+    .chat-tool button {
+        margin: 5px;
+    }
+
+    .chat-msg {
+        flex-grow: 1;
+        border: 1px solid #e2e2e2;
+        border-bottom: none;
+        height: 400px;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .chat-msg ul li {
+        position: relative;
+    }
+
+    .chat-user {
+        position: absolute;
+        left: 3px;
+    }
+
+    .chat-msg .chat-user {
+        line-height: 24px;
+        font-size: 12px;
+        white-space: nowrap;
+        color: #999;
+        text-align: left;
+    }
+
+    .chat-msg .chat-user i {
+        margin-left: 10px;
+        font-style: normal;
+    }
+
+    .chat-msg .chat-text {
+        position: relative;
+        line-height: 22px;
+        margin-top: 25px;
+        padding: 8px 15px;
+        background-color: #e2e2e2;
+        border-radius: 3px;
+        color: #333;
+        word-break: break-all;
+    }
+
+    .chat-text {
+        display: inline-block;
+    }
+
+    .chat-text:after {
+        content: '';
+        position: absolute;
+        left: -10px;
+        top: 13px;
+        width: 0;
+        height: 0;
+        border-style: solid dashed dashed;
+        border-color: #e2e2e2 transparent transparent;
+        overflow: hidden;
+        border-width: 10px;
+    }
+
+    .chat-msg ul .chat-mine {
+        text-align: right;
+        padding-left: 0;
+        /*padding-right: 60px;*/
+    }
+
+    .chat-mine .chat-user {
+        left: auto;
+        right: 3px;
+    }
+
+    .chat-user cite {
+        position: absolute;
+        /*left: 60px;*/
+        top: -2px;
+        width: 500px;
+        line-height: 24px;
+        font-size: 12px;
+        white-space: nowrap;
+        color: #999;
+        text-align: left;
+        font-style: normal;
+    }
+
+    .chat-mine .chat-user cite {
+        left: auto;
+        right: 60px;
+        text-align: right;
+    }
+
+    .chat-mine .chat-text {
+        margin-left: 0;
+        text-align: left;
+        background-color: #5FB878;
+        color: #fff;
+    }
+
+    .chat-mine .chat-text:after {
+        left: auto;
+        right: -10px;
+        border-top-color: #5FB878;
+    }
+
+    .send-box {
+        display: -webkit-flex;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #e2e2e2;
+    }
+
+    .send-input {
+        flex-grow: 1;
+        height: 180px;
+        border: none;
+        resize: none;
+        padding: 5px;
+    }
+
+    .send-btn {
+        float: right;
+        width: 100px;
+        display: inline-block;
+        *display: inline;
+        *zoom: 1;
+        vertical-align: top;
+        font-size: 14px;
+        line-height: 32px;
+        margin-left: 5px;
+        padding: 0 20px;
+        background-color: #5FB878;
+        color: #fff;
+        border: 1px solid #e2e2e2;
+        border-radius: 3px;
+    }
+</style>
+<div class="contain">
+    <div class="chat-env">
+        选择环境：
+        <button data-event="dev">开发</button>
+        <button data-event="stg">测试</button>
+    </div>
+    <div class="chat-tool">
+        <span style="color:red;" id="envName"></span>
+        用户Uid：
+        <input id="user-uid" type="text" value="13074451">
+        <button data-event="online">上线</button>
+        <button data-event="offline">下线</button>
+        |
+        <button data-event="history">获取历史消息</button>
+        |
+        <button data-event="close">结束会话</button>
+        |
+        <button data-event="join">请求人工</button>
+    </div>
+    <div class="chat-main">
+        <div class="chat-box">
+            <div class="chat-msg" id="chat-msg">
+                <ul></ul>
+            </div>
+            <div class="send-box">
+                <textarea class="send-input" id="input"></textarea>
+                <div class="chat-send">
+                    <input class="send-btn" type="button" value="Send"/>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
