@@ -1,1 +1,5 @@
 rootProject.name = 'ex_codec'
+include 'ex_codec_common'
+include 'ex_codec_service'
+include 'ex_codec_portal'
+

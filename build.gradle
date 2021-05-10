@@ -1,52 +1,60 @@
-buildscript {
-    ext {
-        springBootVersion = '2.1.2.RELEASE'
+
+subprojects {
+    buildscript {
+        ext {
+            springBootVersion = '2.1.2.RELEASE'
+        }
+        repositories {
+            mavenLocal()
+            jcenter()
+        }
+        dependencies {
+            classpath("org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion")
+        }
     }
+
+
+    apply plugin: 'java'
+    apply plugin: 'idea'
+
+    group = 'com.nathan.ex'
+    version = '0.0.1-SNAPSHOT'
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+
     repositories {
-        jcenter()
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url "http://maven.aliyun.com/nexus/content/groups/public/"
+        }
+        maven {
+            url "http://mvnrepository.com/artifact/"
+        }
     }
+
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion")
+
+        implementation 'org.springframework.boot:spring-boot-starter:2.2.0.RELEASE'
+        implementation 'org.springframework.boot:spring-boot-starter-webflux:2.2.0.RELEASE'
+        implementation 'org.springframework.boot:spring-boot-starter-aop:2.2.0.RELEASE'
+
+        testImplementation('org.springframework.boot:spring-boot-starter-test:2.2.0.RELEASE') {
+            exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+        }
+
+        compileOnly 'org.projectlombok:lombok:1.18.10'
+        annotationProcessor 'org.projectlombok:lombok:1.18.10'
+
     }
-}
-plugins {
-    id 'org.springframework.boot' version '2.2.0.RELEASE'
-    id 'io.spring.dependency-management' version '1.0.8.RELEASE'
-    id 'java'
-}
 
-version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '1.8'
-
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
+    test {
+        useJUnitPlatform()
     }
-}
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven {
-        url "http://maven.aliyun.com/nexus/content/groups/public/"
-    }
-    maven {
-        url "http://mvnrepository.com/artifact/"
-    }
-}
-
-dependencies {
-    compile 'org.springframework.boot:spring-boot-starter'
-    compile 'org.springframework.boot:spring-boot-starter-webflux'
-    compile 'org.springframework.boot:spring-boot-starter-aop'
-
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    testImplementation('org.springframework.boot:spring-boot-starter-test') {
-        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-    }
-}
-
-test {
-    useJUnitPlatform()
 }
