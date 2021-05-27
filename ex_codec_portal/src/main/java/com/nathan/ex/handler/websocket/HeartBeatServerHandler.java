@@ -1,6 +1,7 @@
 package com.nathan.ex.handler.websocket;
 
 import com.nathan.ex.util.ChannelUtil;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleState;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
+@ChannelHandler.Sharable
 public class HeartBeatServerHandler extends ChannelInboundHandlerAdapter {
 
     @Value("${heartBeat.lossConnectThreshold:4}")
@@ -33,6 +35,12 @@ public class HeartBeatServerHandler extends ChannelInboundHandlerAdapter {
         } else {
             super.userEventTriggered(ctx, evt);
         }
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        ChannelUtil.resetLossConnect(ctx.channel().id().asShortText());
+        ctx.fireChannelRead(msg);
     }
 
 

@@ -14,4 +14,8 @@ public class ChannelUtil {
     public static long recordLossConnect(String channelId) {
         return LOSS_CONNECT_COUNTER.incrementAndGet(channelId);
     }
+
+    public static long resetLossConnect(String channelId) {
+        return LOSS_CONNECT_COUNTER.put(channelId, 0);
+    }
 }
