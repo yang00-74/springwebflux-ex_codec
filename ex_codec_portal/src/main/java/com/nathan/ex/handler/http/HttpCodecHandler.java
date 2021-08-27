@@ -27,6 +27,12 @@ public class HttpCodecHandler {
                 .contentType()
                 .orElse(MediaType.APPLICATION_JSON);
 
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         return content.flatMap(s -> {
             log.info("HTTP receive:{}", s);
             return ServerResponse.ok()
